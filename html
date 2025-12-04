@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SOAP Client for CBR</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <h2>Список курсов валют:</h2>
+    <button onclick="getAllCurrencies()">Запросить курсы валют</button><br/><br/>
+    <div id="currenciesList"></div>
+    
+    <hr />
+    
+    <h2>История изменения курса одной валюты:</h2>
+    Валюта:<input type="text" id="currencyInput"><br/>
+    Дата начала:<input type="date" id="fromDateInput"><br/>
+    Дата окончания:<input type="date" id="toDateInput"><br/>
+    <button onclick="getCurrencyHistory()">Показать динамику курса</button><br/><br/>
+    <div id="historyResult"></div>
+</div>
+<script>
+async function sendSoapRequest(methodName, data) {
+    const response = await axios.post('http://localhost:5000', data);
+    return response.data;
+}
+
+async function getAllCurrencies() {
+    let result = await sendSoapRequest("getValutes");
+    document.getElementById("currenciesList").innerHTML = "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
+}
+
+async function getCurrencyHistory() {
+    const code = document.getElementById("currencyInput").value;
+    const fromDate = document.getElementById("fromDateInput").value;
+    const toDate = document.getElementById("toDateInput").value;
+    if (!code || !fromDate || !toDate) return alert("Все поля обязательны!");
+    try {
+        let result = await sendSoapRequest("getValute", {code, fromDate, toDate});
+        document.getElementById("historyResult").innerHTML = "<pre>" + JSON.stringify(result, null, 2) + "</pre>";
+    } catch(e) {
+        console.error(e.message);
+    }
+}
+</script>
+</body>
+</html>
