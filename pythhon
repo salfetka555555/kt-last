@@ -1,0 +1,44 @@
+# pip install flask suds-jurko requests
+
+import os
+from datetime import date
+from flask import Flask, request, jsonify
+from suds.client import Client
+
+app = Flask(__name__)
+CBR_WSDL_URL = 'https://www.cbr.ru/DailyInfoWebServ/DailyInfo.asmx?WSDL'
+client = Client(CBR_WSDL_URL)
+
+@app.route('/', methods=['POST'])
+def proxy_handler():
+    method_name = request.form['method']
+    if method_name == 'getValutes':
+        today = date.today().isoformat()
+        valutes_xml = client.service.GetCursOnDateXML(today).ValuteData.ValuteCursOnDate
+        result = []
+        for v in valutes_xml:
+            result.append({
+                "code": v.VchCode,
+                "name": v.Vname,
+                "value": float(v.Vcurs)
+            })
+        return jsonify(result)
+    
+    elif method_name == 'getValute':
+        code = request.form['code']
+        from_date = request.form['fromDate']
+        to_date = request.form['toDate']
+        dynamic_data = client.service.GetCursDynamicXML(from_date, to_date, code).ValCurs.Record
+        result = []
+        for rec in dynamic_data:
+            result.append({
+                "date": rec.Date.text,
+                "value": float(rec.Value.text.replace(',', '.'))
+            })
+        return jsonify(result)
+    
+    else:
+        return {"error": f"Unknown method '{method_name}'"}
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
